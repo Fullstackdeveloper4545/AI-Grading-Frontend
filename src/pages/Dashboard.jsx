@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { fetchCurrentUser } from '../api/users'
 
 const menuItems = [
   'Dashboard',
@@ -11,7 +12,6 @@ const menuItems = [
 ]
 
 const settingsItems = [
-  'Profile',
   'Connections (marketplaces)',
   'Subscriptions',
   'Invoices',
@@ -21,20 +21,41 @@ function DashboardPage() {
   const [activeItem, setActiveItem] = useState('Dashboard')
   const [rawOpen, setRawOpen] = useState(true)
   const [gradedOpen, setGradedOpen] = useState(true)
+  const [userProfile, setUserProfile] = useState(null)
+  const [userError, setUserError] = useState('')
 
   const renderFilterBadge = (label, isOpen, onToggle) => (
     <button type="button" className="dash-filter-pill" onClick={onToggle}>
-      <span className="dash-filter-icon">{isOpen ? '−' : '+'}</span>
+      <span className="dash-filter-icon">{isOpen ? '-' : '+'}</span>
       {label}
     </button>
   )
+
+  useEffect(() => {
+    let isMounted = true
+    const loadUser = async () => {
+      const result = await fetchCurrentUser()
+      if (!isMounted) {
+        return
+      }
+      if (!result.ok) {
+        setUserError(result.error || 'Unable to load profile.')
+        return
+      }
+      setUserProfile(result.data)
+    }
+    loadUser()
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   return (
     <div className="dash-page">
       <aside className="dash-sidebar">
         <div className="dash-sidebar-header">
           <span>USER MENU</span>
-          <small>(logged in)</small>
+          <small>{userError || userProfile?.full_name || '(logged in)'}</small>
         </div>
 
         <nav className="dash-menu">
@@ -73,6 +94,15 @@ function DashboardPage() {
         <div className="dash-section-title">SETTINGS</div>
 
         <nav className="dash-menu">
+          <button
+            type="button"
+            className="dash-item"
+            onClick={() => {
+              window.location.hash = '#/profile'
+            }}
+          >
+            Profile
+          </button>
           {settingsItems.map((item) => (
             <button
               key={item}

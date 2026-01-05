@@ -7,6 +7,7 @@ function LoginPage() {
   const [loginForm, setLoginForm] = useState(initialLogin)
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
   const handleChange = (field, value) => {
@@ -34,14 +35,53 @@ function LoginPage() {
     return Object.keys(nextErrors).length === 0
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     setMessage('')
     if (!validate()) {
       return
     }
-    setMessage('Login successful! Redirecting to OTP...')
-    window.location.hash = '#/otp'
+
+    setIsSubmitting(true)
+    try {
+      const body = new URLSearchParams({
+        username: loginForm.email,
+        password: loginForm.password,
+      })
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/auth/login`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body,
+        }
+      )
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        const apiMessage = data?.detail || 'Login failed.'
+        setMessage(apiMessage)
+        return
+      }
+
+      if (data?.access_token) {
+        localStorage.setItem('access_token', data.access_token)
+      }
+      if (data?.refresh_token) {
+        localStorage.setItem('refresh_token', data.refresh_token)
+      }
+      if (data?.token_type) {
+        localStorage.setItem('token_type', data.token_type)
+      }
+
+      setMessage('Login successful! Redirecting to OTP...')
+      window.location.hash = '#/otp'
+    } catch (error) {
+      setMessage('Network error. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -153,8 +193,8 @@ function LoginPage() {
             )}
           </label>
 
-          <button type="submit" className="auth-submit">
-            Sign In
+          <button type="submit" className="auth-submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Signing in...' : 'Sign In'}
           </button>
           {message && <div className="form-message">{message}</div>}
         </form>

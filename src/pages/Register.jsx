@@ -13,6 +13,7 @@ function RegisterPage() {
   const [registerForm, setRegisterForm] = useState(initialRegister)
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
@@ -51,14 +52,52 @@ function RegisterPage() {
     return Object.keys(nextErrors).length === 0
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     setMessage('')
     if (!validate()) {
       return
     }
-    setMessage('Registration complete!')
-    setRegisterForm(initialRegister)
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/auth/register`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: registerForm.email,
+            full_name: registerForm.fullName,
+            password: registerForm.password,
+          }),
+        }
+      )
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        const apiMessage = data?.detail || 'Registration failed.'
+        setMessage(apiMessage)
+        return
+      }
+
+      if (data?.access_token) {
+        localStorage.setItem('access_token', data.access_token)
+      }
+      if (data?.refresh_token) {
+        localStorage.setItem('refresh_token', data.refresh_token)
+      }
+      if (data?.token_type) {
+        localStorage.setItem('token_type', data.token_type)
+      }
+
+      setMessage('Registration complete!')
+      setRegisterForm(initialRegister)
+    } catch (error) {
+      setMessage('Network error. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -257,8 +296,8 @@ function RegisterPage() {
             )}
           </label>
 
-          <button type="submit" className="auth-submit">
-            Create Account
+          <button type="submit" className="auth-submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating...' : 'Create Account'}
           </button>
           {message && <div className="form-message">{message}</div>}
         </form>
