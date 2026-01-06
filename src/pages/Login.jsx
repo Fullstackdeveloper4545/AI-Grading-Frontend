@@ -50,7 +50,7 @@ function LoginPage() {
       })
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/auth/login`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/auth/login/otp`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -65,17 +65,8 @@ function LoginPage() {
         return
       }
 
-      if (data?.access_token) {
-        localStorage.setItem('access_token', data.access_token)
-      }
-      if (data?.refresh_token) {
-        localStorage.setItem('refresh_token', data.refresh_token)
-      }
-      if (data?.token_type) {
-        localStorage.setItem('token_type', data.token_type)
-      }
-
-      setMessage('Login successful! Redirecting to OTP...')
+      localStorage.setItem('otp_email', loginForm.email)
+      setMessage(data?.message || 'OTP sent. Redirecting to verification...')
       window.location.hash = '#/otp'
     } catch (error) {
       setMessage('Network error. Please try again.')

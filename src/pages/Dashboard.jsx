@@ -70,7 +70,17 @@ function DashboardPage() {
                 key={item}
                 type="button"
                 className={`dash-item ${isActive ? 'active' : ''}`}
-                onClick={() => setActiveItem(item)}
+                onClick={() => {
+                  if (item === 'Scan card') {
+                    window.location.hash = '#/scan'
+                    return
+                  }
+                  if (item === 'Collection') {
+                    window.location.hash = '#/collection'
+                    return
+                  }
+                  setActiveItem(item)
+                }}
               >
                 {isFilter ? (
                   <span className="dash-filter-row">
@@ -125,7 +135,13 @@ function DashboardPage() {
               Track grading tasks, collection signals, and marketplace activity.
             </p>
           </div>
-          <button type="button" className="dash-primary-btn">
+          <button
+            type="button"
+            className="dash-primary-btn"
+            onClick={() => {
+              window.location.hash = '#/scan'
+            }}
+          >
             New Scan
           </button>
         </header>

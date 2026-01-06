@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 function OtpPage() {
   const [otpCode, setOtpCode] = useState('')
@@ -6,8 +9,15 @@ function OtpPage() {
   const [otpMessage, setOtpMessage] = useState(
     'We sent a 6-digit code to your email.'
   )
+  const [otpEmail, setOtpEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleOtpSubmit = (event) => {
+  useEffect(() => {
+    const storedEmail = localStorage.getItem('otp_email') || ''
+    setOtpEmail(storedEmail)
+  }, [])
+
+  const handleOtpSubmit = async (event) => {
     event.preventDefault()
     setOtpError('')
     setOtpMessage('')
@@ -19,9 +29,50 @@ function OtpPage() {
       setOtpError('OTP must be exactly 6 digits.')
       return
     }
-    setOtpMessage('Authentication successful!')
-    setOtpCode('')
-    window.location.hash = '#/dashboard'
+
+    if (!otpEmail) {
+      setOtpError('Missing email. Please login again.')
+      return
+    }
+
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('token_type')
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: otpEmail, otp: otpCode }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setOtpError(data?.detail || 'Invalid credentials.')
+        return
+      }
+
+      if (!data?.access_token || !data?.refresh_token) {
+        setOtpError('Invalid credentials.')
+        return
+      }
+
+      localStorage.setItem('access_token', data.access_token)
+      localStorage.setItem('refresh_token', data.refresh_token)
+      if (data?.token_type) {
+        localStorage.setItem('token_type', data.token_type)
+      }
+      localStorage.removeItem('otp_email')
+
+      setOtpMessage('Authentication successful!')
+      setOtpCode('')
+      window.location.hash = '#/dashboard'
+    } catch (error) {
+      setOtpError('Network error. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleResend = () => {
@@ -55,6 +106,9 @@ function OtpPage() {
         </div>
 
         <form className="auth-form otp-form" onSubmit={handleOtpSubmit}>
+          {otpEmail && (
+            <div className="form-message">Sent to: {otpEmail}</div>
+          )}
           <label>
             Enter OTP
             <input
@@ -68,8 +122,12 @@ function OtpPage() {
             />
             {otpError && <span className="error">{otpError}</span>}
           </label>
-          <button type="submit" className="auth-submit">
-            Verify &amp; Continue
+          <button
+            type="submit"
+            className="auth-submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Verifying...' : 'Verify & Continue'}
           </button>
           <div className="otp-actions">
             <button type="button" className="link-btn" onClick={handleResend}>

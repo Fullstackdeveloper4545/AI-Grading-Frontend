@@ -4,6 +4,9 @@ import RegisterPage from './pages/Register'
 import OtpPage from './pages/Otp'
 import DashboardPage from './pages/Dashboard'
 import ProfilePage from './pages/Profile'
+import ScanCardsPage from './pages/ScanCards'
+import CollectionPage from './pages/Collection'
+import CollectionDetailsPage from './pages/CollectionDetails'
 import { isTokenExpired, refreshAuthTokens } from './api/auth'
 import './App.css'
 
@@ -13,6 +16,9 @@ const routes = {
   '#/otp': OtpPage,
   '#/dashboard': DashboardPage,
   '#/profile': ProfilePage,
+  '#/scan': ScanCardsPage,
+  '#/collection': CollectionPage,
+  '#/collection-details': CollectionDetailsPage,
 }
 
 function App() {
@@ -33,7 +39,10 @@ function App() {
     if (!window.location.hash) {
       window.location.hash = '#/login'
     }
-    const handleChange = () => setHash(window.location.hash || '#/login')
+    const handleChange = () => {
+      const rawHash = window.location.hash || '#/login'
+      setHash(rawHash.split('?')[0])
+    }
     window.addEventListener('hashchange', handleChange)
     refreshIfNeeded()
     return () => window.removeEventListener('hashchange', handleChange)

@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import { fetchCurrentUser } from '../api/users'
+import { API_BASE_URL } from '../api/auth'
+import {
+  deleteMyImage,
+  fetchCurrentUser,
+  fetchMyImages,
+  setProfileImage,
+  uploadMyImage,
+} from '../api/users'
 
 const menuItems = [
   'Dashboard',
@@ -31,6 +38,11 @@ function ProfilePage() {
   const [profileInitialized, setProfileInitialized] = useState(false)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [profileMessage, setProfileMessage] = useState('')
+  const [userImages, setUserImages] = useState({ profile: '', gallery: [] })
+  const [imagesError, setImagesError] = useState('')
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [profileImageId, setProfileImageId] = useState(null)
+  const [isDeletingImage, setIsDeletingImage] = useState(false)
 
   const profileStorageKey = 'profile_details'
 
@@ -45,23 +57,73 @@ function ProfilePage() {
     .slice(0, 2)
     .join('')
     .toUpperCase()
+  const profileAvatarUrl = profileForm.avatar || userImages.profile
 
   const handleProfileChange = (field, value) => {
     setProfileMessage('')
     setProfileForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleAvatarChange = (event) => {
+  const handleAvatarChange = async (event) => {
     const file = event.target.files?.[0]
     if (!file) {
       return
     }
-    const reader = new FileReader()
-    reader.onload = () => {
-      setProfileMessage('')
-      setProfileForm((prev) => ({ ...prev, avatar: reader.result }))
+    setProfileMessage('')
+    setImagesError('')
+    setIsUploadingImage(true)
+    const result = await uploadMyImage(file, true)
+    if (!result.ok) {
+      setImagesError(result.error || 'Unable to upload image.')
+      setIsUploadingImage(false)
+      return
     }
-    reader.readAsDataURL(file)
+    const imageUrl = result.data?.image_url
+      ? `${API_BASE_URL}/${result.data.image_url}`
+      : ''
+    setProfileForm((prev) => ({ ...prev, avatar: imageUrl }))
+    setUserImages((prev) => ({ ...prev, profile: imageUrl }))
+    setProfileImageId(result.data?.id || null)
+    setProfileMessage('Profile photo updated.')
+    setIsUploadingImage(false)
+  }
+
+  const handleSetProfileImage = async (imageId) => {
+    setImagesError('')
+    const result = await setProfileImage(imageId)
+    if (!result.ok) {
+      setImagesError(result.error || 'Unable to update profile image.')
+      return
+    }
+    const imageUrl = result.data?.image_url
+      ? `${API_BASE_URL}/${result.data.image_url}`
+      : ''
+    setProfileForm((prev) => ({ ...prev, avatar: imageUrl }))
+    setUserImages((prev) => ({ ...prev, profile: imageUrl }))
+    setProfileImageId(imageId)
+    setProfileMessage('Profile photo updated.')
+  }
+
+  const handleDeleteImage = async (imageId) => {
+    setImagesError('')
+    setIsDeletingImage(true)
+    const result = await deleteMyImage(imageId)
+    if (!result.ok) {
+      setImagesError(result.error || 'Unable to delete image.')
+      setIsDeletingImage(false)
+      return
+    }
+    setUserImages((prev) => ({
+      ...prev,
+      gallery: prev.gallery.filter((img) => img.id !== imageId),
+    }))
+    if (profileImageId === imageId) {
+      setProfileImageId(null)
+      setProfileForm((prev) => ({ ...prev, avatar: '' }))
+      setUserImages((prev) => ({ ...prev, profile: '' }))
+    }
+    setProfileMessage('Image deleted.')
+    setIsDeletingImage(false)
   }
 
   const handleSaveProfile = () => {
@@ -102,6 +164,34 @@ function ProfilePage() {
       setUserProfile(result.data)
     }
     loadUser()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+    const loadImages = async () => {
+      const result = await fetchMyImages()
+      if (!isMounted) {
+        return
+      }
+      if (!result.ok) {
+        setImagesError(result.error || 'Unable to load images.')
+        return
+      }
+      const profileImageUrl = result.data?.profile_image?.image_url
+      const galleryImages = result.data?.gallery_images || []
+      setUserImages({
+        profile: profileImageUrl ? `${API_BASE_URL}/${profileImageUrl}` : '',
+        gallery: galleryImages.map((img) => ({
+          id: img.id,
+          url: `${API_BASE_URL}/${img.image_url}`,
+        })),
+      })
+      setProfileImageId(result.data?.profile_image?.id || null)
+    }
+    loadImages()
     return () => {
       isMounted = false
     }
@@ -189,9 +279,9 @@ function ProfilePage() {
         <section className="profile-card">
           <div className="profile-header">
             <div className="profile-identity">
-              {profileForm.avatar ? (
+              {profileAvatarUrl ? (
                 <img
-                  src={profileForm.avatar}
+                  src={profileAvatarUrl}
                   alt="Profile"
                   className="profile-avatar-image"
                 />
@@ -240,8 +330,9 @@ function ProfilePage() {
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarChange}
+                  disabled={isUploadingImage}
                 />
-                Upload photo
+                {isUploadingImage ? 'Uploading...' : 'Upload photo'}
               </label>
               {profileForm.avatar && (
                 <button
@@ -342,6 +433,58 @@ function ProfilePage() {
                   'Add a short bio to personalize your profile.'}
               </p>
             )}
+          </div>
+
+          <div className="profile-gallery">
+            <div className="profile-gallery-header">
+              <h3>My Images</h3>
+              {imagesError ? (
+                <span className="profile-gallery-error">{imagesError}</span>
+              ) : null}
+            </div>
+            <div className="profile-gallery-grid">
+              {userImages.profile ? (
+                <div className="profile-gallery-item">
+                  <img src={userImages.profile} alt="Profile" />
+                  <span>Profile</span>
+                </div>
+              ) : null}
+              {userImages.gallery.map((img) => (
+                <div key={img.id} className="profile-gallery-item">
+                  <img src={img.url} alt="Gallery" />
+                  <span>Gallery</span>
+                  {profileImageId === img.id ? (
+                    <span className="profile-gallery-badge">Profile</span>
+                  ) : (
+                    <div className="profile-gallery-actions">
+                      <button
+                        type="button"
+                        className="profile-gallery-action"
+                        onClick={() => handleSetProfileImage(img.id)}
+                        disabled={isDeletingImage}
+                      >
+                        Set as profile
+                      </button>
+                      <button
+                        type="button"
+                        className="profile-gallery-delete"
+                        onClick={() => handleDeleteImage(img.id)}
+                        disabled={isDeletingImage}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {!userImages.profile &&
+              userImages.gallery.length === 0 &&
+              !imagesError ? (
+                <div className="profile-gallery-empty">
+                  No images uploaded yet.
+                </div>
+              ) : null}
+            </div>
           </div>
         </section>
       </main>
