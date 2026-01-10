@@ -7,22 +7,12 @@ import {
   setProfileImage,
   uploadMyImage,
 } from '../api/users'
-
-const menuItems = [
-  'Dashboard',
-  'Scan card',
-  'Collection',
-  'Raw cards (filter)',
-  'Graded cards (filter)',
-  'Investment',
-  'Market places',
-]
-
-const settingsItems = [
-  'Connections (marketplaces)',
-  'Subscriptions',
-  'Invoices',
-]
+import DashboardSidebar from '../components/DashboardSidebar'
+import {
+  dashboardMenuItems,
+  dashboardSettingsItems,
+} from '../components/dashboardMenu'
+import { ROUTES, navigateTo } from '../routes'
 
 function ProfilePage() {
   const [userProfile, setUserProfile] = useState(null)
@@ -221,49 +211,23 @@ function ProfilePage() {
     }
   }, [profileInitialized, profileStorageKey, userProfile])
 
+  const handleSelectItem = (item) => {
+    if (item.route) {
+      navigateTo(item.route)
+    }
+  }
+
   return (
     <div className="dash-page">
-      <aside className="dash-sidebar">
-        <div className="dash-sidebar-header">
-          <span>USER MENU</span>
-          <small>{userError || profileName}</small>
-        </div>
-
-        <nav className="dash-menu">
-          {menuItems.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className="dash-item"
-              onClick={() => {
-                window.location.hash = '#/dashboard'
-              }}
-            >
-              {item}
-            </button>
-          ))}
-        </nav>
-
-        <div className="dash-section-title">SETTINGS</div>
-
-        <nav className="dash-menu">
-          <button type="button" className="dash-item active">
-            Profile
-          </button>
-          {settingsItems.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className="dash-item"
-              onClick={() => {
-                window.location.hash = '#/dashboard'
-              }}
-            >
-              {item}
-            </button>
-          ))}
-        </nav>
-      </aside>
+      <DashboardSidebar
+        userName={profileName}
+        userError={userError}
+        menuItems={dashboardMenuItems}
+        settingsItems={dashboardSettingsItems}
+        activeItem="Profile"
+        onSelectItem={handleSelectItem}
+        disableNoRoute
+      />
 
       <main className="dash-content">
         <header className="dash-header">

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ROUTES, navigateTo } from '../routes'
 
 const initialRegister = {
   fullName: '',
@@ -115,7 +116,7 @@ function RegisterPage() {
           <button
             type="button"
             onClick={() => {
-              window.location.hash = '#/login'
+              navigateTo(ROUTES.login)
             }}
           >
             Login

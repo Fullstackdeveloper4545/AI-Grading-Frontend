@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { API_BASE_URL } from '../api/auth'
+import { ROUTES, navigateTo } from '../routes'
 
 const fallbackImages = [
   '/cards/card-1.svg',
@@ -99,7 +100,7 @@ function CollectionDetailsPage() {
             type="button"
             className="details-back-btn"
             onClick={() => {
-              window.location.hash = '#/collection'
+              navigateTo(ROUTES.collection)
             }}
           >
             Back

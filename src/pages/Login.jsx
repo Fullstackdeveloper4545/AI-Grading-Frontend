@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ROUTES, navigateTo } from '../routes'
 
 const initialLogin = { email: '', password: '' }
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -67,7 +68,7 @@ function LoginPage() {
 
       localStorage.setItem('otp_email', loginForm.email)
       setMessage(data?.message || 'OTP sent. Redirecting to verification...')
-      window.location.hash = '#/otp'
+      navigateTo(ROUTES.otp)
     } catch (error) {
       setMessage('Network error. Please try again.')
     } finally {
@@ -93,7 +94,7 @@ function LoginPage() {
           <button
             type="button"
             onClick={() => {
-              window.location.hash = '#/register'
+              navigateTo(ROUTES.register)
             }}
           >
             Register

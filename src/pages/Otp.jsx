@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ROUTES, navigateTo } from '../routes'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -67,7 +68,7 @@ function OtpPage() {
 
       setOtpMessage('Authentication successful!')
       setOtpCode('')
-      window.location.hash = '#/dashboard'
+      navigateTo(ROUTES.dashboard)
     } catch (error) {
       setOtpError('Network error. Please try again.')
     } finally {
@@ -95,7 +96,7 @@ function OtpPage() {
           <button
             type="button"
             onClick={() => {
-              window.location.hash = '#/login'
+              navigateTo(ROUTES.login)
             }}
           >
             Login
@@ -137,7 +138,7 @@ function OtpPage() {
               type="button"
               className="link-btn"
               onClick={() => {
-                window.location.hash = '#/login'
+                navigateTo(ROUTES.login)
               }}
             >
               Back to login

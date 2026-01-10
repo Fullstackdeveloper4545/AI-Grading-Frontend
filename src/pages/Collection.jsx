@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { API_BASE_URL } from '../api/auth'
+import { ROUTES, navigateTo } from '../routes'
 
 const fallbackImages = [
   '/cards/card-1.svg',
@@ -318,7 +319,7 @@ function CollectionPage() {
                   type="button"
                   className="collection-details-btn"
                   onClick={() => {
-                    window.location.hash = `#/collection-details?id=${item.id}`
+                    navigateTo(`${ROUTES.collectionDetails}?id=${item.id}`)
                   }}
                 >
                   View Full Details
@@ -326,7 +327,7 @@ function CollectionPage() {
               </div>
             </article>
           ))}
-        </div>
+        </div>      
       </section>
 
     </div>
